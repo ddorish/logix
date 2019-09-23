@@ -1,0 +1,11 @@
+
+
+
+What if loop raises an exception ? Wrap everything with a try/except
+Status pin notification
+
+
+
+
+
+conf.get for number - what if it fails ?
