@@ -5,35 +5,10 @@ import utime
 import machine
 import micropython
 import api
-# import handlers
+import gc
 
 
-##################################################################
-# Default funcs for all events. Can be overriden by user if wanted
-##################################################################
-g_loop_print = True
-def loop(curr_time_ms):
-    global g_loop_print
-    g_loop_print = g_loop_print and print("Loop is missing")
-setup = lambda: print("setup is missing")
-on_mqtt = lambda topic, payload: print("mqtt arrived on %s: %s" % (topic, payload))
-on_wifi_connect = lambda network_name: print("wifi connected to %s" % network_name)
-on_wifi_connect_fail = lambda network_name: print("wifi connect fail to %s" % network_name)
-on_wifi_disconnect = lambda network_name: print("wifi disconnect from %s" % network_name)
-on_mqtt_connect = lambda: print("mqtt connected")
-on_mqtt_connect_fail = lambda: print("mqtt connect failed")
-on_mqtt_disconnect = lambda: print("mqtt disconnected")
-def send_report():
-    """Send some data about the machine... IP address. Anything else ??"""
-    app = api.app
-    if app.mqtt_connected():
-        report_topic = app.conf.get('device_report_topic', None)
-        if report_topic is not None:
-            app.publish(report_topic, 'Network: %s' % str(app._station.ifconfig()))
-##################################################################
-#             End of default funcs for all events
-##################################################################
-
+from defaults import *
 
 class App:
     _conn_states = ['boot', 'wifi_trying', 'wifi_up', 'mqtt_trying', 'mqtt_up']
@@ -169,7 +144,6 @@ class App:
         self._check_wifi()
         self._check_mqtt()
         self._maybe_mqtt_disconnect_timeout()
-        self._update_status_pin()
         if self.mqtt_connected():
             self._mqtt_client.check_msg()
         for auto_with_loop in self.autos_with_loop:
@@ -180,10 +154,6 @@ class App:
             print("Error when evaluating user's loop function:\n%s" % err)
         if self._is_running:
             machine.Timer(1).init(mode=machine.Timer.ONE_SHOT, period=150, callback=schedule_run)
-
-    def _update_status_pin(self):
-        """Blink with the light according to the mood and state"""
-        pass
 
     def _check_wifi(self):
         """Make sure WIFI ok. Will increment self.current_state accordingly"""
@@ -289,6 +259,9 @@ def schedule_run(*args):
 # Generate everything...
 App()
 
+gc.collect()
+print("Before importing logix.py: %d mem free" % gc.mem_free())
+
 # Load user data
 try:
     from logix import *
@@ -297,3 +270,5 @@ except Exception as e:
     status_msg = "Error in logix.py: %s: %s" % (type(err), str(err))
     print(status_msg)  # Will only be seen if connected via serial
 
+gc.collect()
+print("After utils.py: %d mem free" % gc.mem_free())
