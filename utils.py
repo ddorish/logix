@@ -23,8 +23,8 @@ class App:
         self._state_aux_var = 0
         self._station = None
         self._mqtt_client = None
+        self._mqtt_recently_ok = False
         self._last_ip_report = True
-        self._last_mqtt_connect_time = False  # False/True: Not/connected. int: Connected for a short time
         self.autos_mqtt_topics = {}  # {Topic: [handlers, ]} for objects framework automatically handles e.g. MqttSwitch
         self.autos_with_loop = []
         self.autos_full_list = []
@@ -64,12 +64,12 @@ class App:
         # And call the rest...
         on_mqtt(topic, payload)
 
-    def on_generic(self, func, name, *args, **kwargs):
-        self.run_func_on_handlers('name', *args, **kwargs)
+    def on_generic(self, name, func, *args, **kwargs):
+        self.run_func_on_handlers(name, *args, **kwargs)
         try:
             func(*args, **kwargs)
         except Exception as err:
-            print("Error running on_wifi_connect: %s" % str(err))
+            print("Error running %s: %s" % (name, str(err)))
 
     def on_wifi_connect(self, *args, **kwargs):
         self.on_generic('on_wifi_connect', on_wifi_connect, *args, **kwargs)
@@ -98,7 +98,15 @@ class App:
         return self._conn_states.index(which)
 
     def _set_conn_state(self, which):
-        self._current_state = self._conn_state_of(which)
+        new_state = self._conn_state_of(which)
+        if new_state == self._current_state:
+            # This would save the re-calling of the trigger every utime wrap-around. Alas, no memory...
+            # ms_in_state = utime.ticks_diff(utime.ticks_ms(), self._state_start_time)
+            # if ms_in_state >= 600000:
+            #     # Avoid timer overlap
+            #     self._state_start_time = utime.ticks_diff(utime.ticks_ms(), -600000)
+            return
+        self._current_state = new_state
         self._state_start_time = utime.ticks_ms()
 
     def wifi_connected(self):
@@ -183,7 +191,7 @@ class App:
     def _check_mqtt(self):
         current_state, _ = self._get_conn_state()
         conf = self.conf
-        if not 'mqtt_server' in conf:
+        if 'mqtt_server' not in conf:
             # Bad config. Cannot do anything
             return
         if self._current_state < self._conn_state_of('wifi_up'):
@@ -193,7 +201,6 @@ class App:
         if self._conn_state_of('mqtt_up') <= self._current_state:
             # MQTT allegedly connected. Just make sure we're still in...
             if self.mqtt_connected():
-                self._last_mqtt_connect_time = utime.ticks_ms()
                 return
             print("MQTT connection temporarily lost...")
 
@@ -207,7 +214,8 @@ class App:
         password = conf.get('mqtt_pass')
         Print("Mqtt-connecting device %s to server %s, port %s, user=%s, pass of %d chars" % (
             api.uid(), server, port, user, 0 if password is None else len(password)))
-        self._mqtt_client = MQTTClient(client_id=api.uid(), server=server, port=port, user=user, password=password)
+        if self._mqtt_client is None:
+            self._mqtt_client = MQTTClient(client_id=api.uid(), server=server, port=port, user=user, password=password)
         if self._mqtt_client.connect():
             self._mqtt_client.set_callback(self.on_mqtt)
             conf_keys_listen = conf.get('mqtt_listen', '').split()
@@ -220,20 +228,19 @@ class App:
                 self._mqtt_client.subscribe(topic)
             self.on_mqtt_connect()
             self._set_conn_state('mqtt_up')
-            self._last_mqtt_connect_time = utime.ticks_ms()
+            self._mqtt_recently_ok = True
             return
         # self.on_mqtt_connect_fail()
 
     def _maybe_mqtt_disconnect_timeout(self):
         """Check if MQTT is disconnected for XXX mSec, and if so, run callback"""
-        if type(self._last_mqtt_connect_time) is int:
-            dtime = int(self.conf.get('mqtt_grace_period_ms', 120000))
-            if utime.ticks_diff(utime.ticks_ms(), self._last_mqtt_connect_time) > dtime:
-                self._last_mqtt_connect_time = True
-        if self._last_mqtt_connect_time is True and not self.mqtt_connected():
-            self._last_mqtt_connect_time = False
-            print("MQTT is disconnected for long enough")
+        if not self._mqtt_recently_ok:
+            return
+        ms_since_server_seen = self._mqtt_client.ms_since_server_seen()
+        if ms_since_server_seen is None or ms_since_server_seen > int(self.conf.get('mqtt_grace_period_ms', '120000')):
+            print("MQTT is disconnected for too long (%s ms)" % (str(ms_since_server_seen) if ms_since_server_seen is not None else "forever"))
             self.on_mqtt_disconnect()
+            self._mqtt_recently_ok = False
 
     def station(self):
         return self._station

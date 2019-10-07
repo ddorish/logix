@@ -65,7 +65,6 @@ class MQTTClient:
     def connect(self, clean_session=True):
         self.sock = socket.socket()
         addr = socket.getaddrinfo(self.server, self.port)[0][-1]
-        self.last_server_activity = None
         try:
             self.sock.connect(addr)
         except OSError:
@@ -126,7 +125,7 @@ class MQTTClient:
     def ms_since_server_seen(self):
         """We cannot know if server is connected, because we don't know how often check_msg is called"""
         if self.last_server_activity is None:
-            return None
+            return None  # Never connected
         return utime.ticks_diff(utime.ticks_ms(), self.last_server_activity)
 
     def publish(self, topic, msg, retain=False, qos=0):
@@ -194,9 +193,9 @@ class MQTTClient:
         self.sock.setblocking(True)
         if res is None:
             return None
-        self.last_server_activity = utime.ticks_ms()
         if res == b"":
             raise OSError(-1)
+        self.last_server_activity = utime.ticks_ms()
         if res == b"\xd0":  # PINGRESP
             sz = self.sock.read(1)[0]
             assert sz == 0
@@ -233,7 +232,6 @@ class MQTTClient:
             return self.wait_msg()
         except OSError:
             # Couldn't connect to server
-            self.last_server_activity = None
             return None
 
 
