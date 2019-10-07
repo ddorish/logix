@@ -1,4 +1,4 @@
-if 0:
+if 1:
     import utils  # This fires up everything more or less...
     import api
 
