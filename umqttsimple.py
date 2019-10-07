@@ -69,7 +69,6 @@ class MQTTClient:
         try:
             self.sock.connect(addr)
         except OSError:
-            print("OSError when trying to connect socket")
             return False  # Not Okay. Connection failed
         if self.ssl:
             import ussl
@@ -228,9 +227,14 @@ class MQTTClient:
     # the same processing as wait_msg.
     def check_msg(self):
         self.sock.setblocking(False)
-        if self.ms_since_server_seen() > self.ping_rate:
-            self.ping()
-        return self.wait_msg()
+        try:
+            if self.ms_since_server_seen() > self.ping_rate:
+                self.ping()
+            return self.wait_msg()
+        except OSError:
+            # Couldn't connect to server
+            self.last_server_activity = None
+            return None
 
 
 import gc

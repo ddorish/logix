@@ -1,22 +1,23 @@
 import api
+from printer import Print
 
 ##################################################################
 # Default funcs for all events. Can be overriden by user if wanted
 ##################################################################
-g_loop_print = True
+g_loop_Print = True
 
 
 def loop(curr_time_ms):
-    global g_loop_print
-    g_loop_print = g_loop_print and print("Loop is missing")
-setup = lambda: print("setup is missing")
-on_mqtt = lambda topic, payload: print("mqtt arrived on %s: %s" % (topic, payload))
-on_wifi_connect = lambda network_name: print("wifi connected to %s" % network_name)
-on_wifi_connect_fail = lambda network_name: print("wifi connect fail to %s" % network_name)
-on_wifi_disconnect = lambda network_name: print("wifi disconnect from %s" % network_name)
-on_mqtt_connect = lambda: print("mqtt connected")
-on_mqtt_connect_fail = lambda: print("mqtt connect failed")
-on_mqtt_disconnect = lambda: print("mqtt disconnected")
+    global g_loop_Print
+    g_loop_Print = g_loop_Print and Print("Loop is missing")
+setup = lambda: Print("setup is missing")
+on_mqtt = lambda topic, payload: Print("mqtt arrived on %s: %s" % (topic, payload))
+on_wifi_connect = lambda network_name: Print("wifi connected to %s" % network_name)
+on_wifi_connect_fail = lambda network_name: Print("wifi connect fail to %s" % network_name)
+# on_wifi_disconnect = lambda network_name: Print("wifi disconnect from %s" % network_name)
+on_mqtt_connect = lambda: Print("mqtt connected")
+# on_mqtt_connect_fail = lambda: Print("mqtt connect failed")
+on_mqtt_disconnect = lambda: Print("mqtt disconnected")
 
 
 def send_report():

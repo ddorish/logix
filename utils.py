@@ -1,14 +1,17 @@
-import network
-from reader import read_config
-from umqttsimple import MQTTClient
-import utime
-import machine
-import micropython
+# Repeat imports to save memory
+
+import gc
+
 import api
 import gc
 
+import micropython
+import network
 
 from defaults import *
+from reader import read_config
+from umqttsimple import MQTTClient
+
 
 class App:
     _conn_states = ['boot', 'wifi_trying', 'wifi_up', 'mqtt_trying', 'mqtt_up']
@@ -61,47 +64,30 @@ class App:
         # And call the rest...
         on_mqtt(topic, payload)
 
-    def on_wifi_connect(self, *args, **kwargs):
-        self.run_func_on_handlers('on_wifi_connect', *args, **kwargs)
+    def on_generic(self, func, name, *args, **kwargs):
+        self.run_func_on_handlers('name', *args, **kwargs)
         try:
-            on_wifi_connect(*args, **kwargs)
+            func(*args, **kwargs)
         except Exception as err:
             print("Error running on_wifi_connect: %s" % str(err))
 
-    def on_wifi_connect_fail(self, *args, **kwargs):
-        self.run_func_on_handlers('on_wifi_connect_fail', *args, **kwargs)
-        try:
-            on_wifi_connect_fail(*args, **kwargs)
-        except Exception as err:
-            print("Error running on_wifi_connect_fail: %s" % str(err))
+    def on_wifi_connect(self, *args, **kwargs):
+        self.on_generic('on_wifi_connect', on_wifi_connect, *args, **kwargs)
 
-    def on_wifi_disconnect(self, *args, **kwargs):
-        self.run_func_on_handlers('on_wifi_disconnect', *args, **kwargs)
-        try:
-            on_wifi_disconnect(*args, **kwargs)
-        except Exception as err:
-            print("Error running on_wifi_disconnect: %s" % str(err))
+    def on_wifi_connect_fail(self, *args, **kwargs):
+        self.on_generic('on_wifi_connect_fail', on_wifi_connect_fail, *args, **kwargs)
+
+    # def on_wifi_disconnect(self, *args, **kwargs):
+    #     self.on_generic('on_wifi_disconnect', on_wifi_disconnect, *args, **kwargs)
 
     def on_mqtt_connect(self, *args, **kwargs):
-        self.run_func_on_handlers('on_mqtt_connect', *args, **kwargs)
-        try:
-            on_mqtt_connect(*args, **kwargs)
-        except Exception as err:
-            print("Error running on_mqtt_connect: %s" % str(err))
+        self.on_generic('on_mqtt_connect', on_mqtt_connect, *args, **kwargs)
 
-    def on_mqtt_connect_fail(self, *args, **kwargs):
-        self.run_func_on_handlers('on_mqtt_connect_fail', *args, **kwargs)
-        try:
-            on_mqtt_connect_fail(*args, **kwargs)
-        except Exception as err:
-            print("Error running on_mqtt_connect_fail: %s" % str(err))
+    # def on_mqtt_connect_fail(self, *args, **kwargs):
+    #     self.on_generic('on_mqtt_connect_fail', on_mqtt_connect_fail, *args, **kwargs)
 
     def on_mqtt_disconnect(self, *args, **kwargs):
-        self.run_func_on_handlers('on_mqtt_disconnect', *args, **kwargs)
-        try:
-            on_mqtt_disconnect(*args, **kwargs)
-        except Exception as err:
-            print("Error running on_mqtt_disconnect: %s" % str(err))
+        self.on_generic('on_mqtt_disconnect', on_mqtt_disconnect, *args, **kwargs)
 
     def _get_conn_state(self):
         """Get connectivity state"""
@@ -167,7 +153,7 @@ class App:
             if self.wifi_connected():
                 # All cool! That should happen most of the times.
                 return
-            self.on_wifi_disconnect(wifi_ssid)
+            # self.on_wifi_disconnect(wifi_ssid)
             self._set_conn_state('boot')
 
         if current_state == 'boot':
@@ -207,6 +193,7 @@ class App:
         if self._conn_state_of('mqtt_up') <= self._current_state:
             # MQTT allegedly connected. Just make sure we're still in...
             if self.mqtt_connected():
+                self._last_mqtt_connect_time = utime.ticks_ms()
                 return
             print("MQTT connection temporarily lost...")
 
@@ -218,7 +205,7 @@ class App:
         port = conf.get('mqtt_port')
         user = conf.get('mqtt_user')
         password = conf.get('mqtt_pass')
-        print("Mqtt-connecting device %s to server %s, port %s, user=%s, pass of %d chars" % (
+        Print("Mqtt-connecting device %s to server %s, port %s, user=%s, pass of %d chars" % (
             api.uid(), server, port, user, 0 if password is None else len(password)))
         self._mqtt_client = MQTTClient(client_id=api.uid(), server=server, port=port, user=user, password=password)
         if self._mqtt_client.connect():
@@ -235,7 +222,7 @@ class App:
             self._set_conn_state('mqtt_up')
             self._last_mqtt_connect_time = utime.ticks_ms()
             return
-        self.on_mqtt_connect_fail()
+        # self.on_mqtt_connect_fail()
 
     def _maybe_mqtt_disconnect_timeout(self):
         """Check if MQTT is disconnected for XXX mSec, and if so, run callback"""
@@ -254,6 +241,7 @@ class App:
 
 def schedule_run(*args):
     micropython.schedule(api.app.loop, None)
+
 
 
 # Generate everything...
