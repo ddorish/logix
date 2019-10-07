@@ -3,7 +3,7 @@ import utime
 # This is the main file you want to edit. You should provide here 2 methods: init and loop
 # You can implement any of the funcs in defaults.py to override them
 
-from numbers import *
+from vars import *
 from digital_output import *
 
 
@@ -12,11 +12,11 @@ class Data:
     led_l = machine.Pin(api.PinOut.D6, mode=machine.Pin.OUT, value=1)
 
     # This will play the role of a "non-optimistic" switch. We sync the led_* to it when we need
-    curr_state = IntNumber(mqtt_cmd='led_cmd', mqtt_get='led_get', init_value=0, min_value=0, max_value=1)
+    curr_state = IntVar(mqtt_cmd='led_cmd', mqtt_get='led_get', init_value=0, min_value=0, max_value=1)
     last_state = curr_state.value()
 
     # This sets the amount of delay between the lights:
-    t_delay = FloatNumber(mqtt_cmd='delay_cmd', mqtt_get='delay_get', init_value=2000, min_value=0, max_value=10000)
+    t_delay = FloatVar(mqtt_cmd='delay_cmd', mqtt_get='delay_get', init_value=2000, min_value=0, max_value=10000)
     last_update_ms = None
 
 
