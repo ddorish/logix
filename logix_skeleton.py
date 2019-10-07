@@ -3,7 +3,7 @@
 # on_mqtt(topic, payload) - Will be called when a message arrives
 # on_mqtt_connect_fail() - Will be called if we cannot connect to broker
 # on_mqtt_connect, on_mqtt_disconnect - What to do when MQTT does like this
-# on_wifi_connect, on_wifi_disconnect - What to do whtn WiFi does like this
+# on_wifi_connect, on_wifi_disconnect - What to do when WiFi does like this
 # on_wifi_connect_fail - Called when cannot connect to desired network
 
 

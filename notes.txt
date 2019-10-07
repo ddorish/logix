@@ -1,0 +1,3 @@
+1. Fix the MQTT disconnection problem.
+2. Maybe add a report channel in the Print class
+3. Publish IP regularily
