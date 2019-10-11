@@ -233,7 +233,3 @@ class MQTTClient:
         except OSError:
             # Couldn't connect to server
             return None
-
-
-import gc
-gc.collect()

@@ -1,6 +1,25 @@
 if 1:
     import utils  # This fires up everything more or less...
+
+    # Generate everything...
+    utils.App()
+
+    # Load user data
+    try:
+        from logix import *
+    except Exception as e:
+        err = e
+        status_msg = "Error in logix.py: %s: %s" % (type(err), str(err))
+        print(status_msg)  # Will only be seen if connected via serial
+
     import api
+
+    try:
+        import logix as logix_module
+        api.logix = logix_module
+    except:
+        # Nahh. Forget.
+        pass
 
 
     def run():

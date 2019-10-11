@@ -12,6 +12,10 @@ def as_uint32(x):
     return array.array('I', [x])[0]
 
 
+def ifconfig():
+    return app.station().ifconfig()
+
+
 def hexalify(num):
     text = '0123456789ABCDEF'
     res = ''

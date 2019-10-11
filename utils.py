@@ -1,8 +1,9 @@
 # Repeat imports to save memory
 
 import gc
-
+import utime
 import api
+import machine
 import gc
 
 import micropython
@@ -249,21 +250,6 @@ class App:
 def schedule_run(*args):
     micropython.schedule(api.app.loop, None)
 
-
-
-# Generate everything...
-App()
-
-gc.collect()
-print("Before importing logix.py: %d mem free" % gc.mem_free())
-
-# Load user data
-try:
-    from logix import *
-except Exception as e:
-    err = e
-    status_msg = "Error in logix.py: %s: %s" % (type(err), str(err))
-    print(status_msg)  # Will only be seen if connected via serial
 
 gc.collect()
 print("After utils.py: %d mem free" % gc.mem_free())
