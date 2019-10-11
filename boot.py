@@ -1,1 +1,3 @@
-# Dummy file
+import webrepl                                                                                                                                        
+webrepl.start()                                                                                                                                       
+
