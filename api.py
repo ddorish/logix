@@ -8,8 +8,17 @@ from machine import unique_id  # Timer
 app = None
 
 
+class cb:
+    # Used to store all the callbacks (as defined in defaults.py)
+    pass
+
+
 def as_uint32(x):
     return array.array('I', [x])[0]
+
+
+def ifconfig():
+    return app.station().ifconfig()
 
 
 def hexalify(num):
