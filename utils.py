@@ -1,15 +1,12 @@
 # Repeat imports to save memory
 
-import gc
 import utime
 import api
 import machine
-import gc
 
 import micropython
 import network
-
-from defaults import *
+from printer import Print
 from reader import read_config
 from umqttsimple import MQTTClient
 
@@ -31,13 +28,15 @@ class App:
         self.autos_full_list = []
         self.conf = read_config()
         api.app = self
-        setup()
 
     def register(self, auto_obj, topics_list):
+        print("Registering handler %s at %s, no_auto=%s" % (type(auto_obj), str(id(auto_obj)), auto_obj.no_auto))
+
         self.autos_full_list.append(auto_obj)
         if hasattr(auto_obj, 'loop'):
             self.autos_with_loop.append(auto_obj)
-        for topic in topics_list:
+
+        for topic in topics_list if topics_list is not None else []:
             topic_addressees = self.autos_mqtt_topics.get(topic, [])
             topic_addressees.append(auto_obj)
             self.autos_mqtt_topics[topic] = topic_addressees
@@ -63,7 +62,7 @@ class App:
             except Exception as e:
                 print("Error evaluating on_mqtt of auto %d (of type %s):\n%s" % (i, type(auto), e))
         # And call the rest...
-        on_mqtt(topic, payload)
+        api.cb.on_mqtt(topic, payload)
 
     def on_generic(self, name, func, *args, **kwargs):
         self.run_func_on_handlers(name, *args, **kwargs)
@@ -73,22 +72,22 @@ class App:
             print("Error running %s: %s" % (name, str(err)))
 
     def on_wifi_connect(self, *args, **kwargs):
-        self.on_generic('on_wifi_connect', on_wifi_connect, *args, **kwargs)
+        self.on_generic('on_wifi_connect', api.cb.on_wifi_connect, *args, **kwargs)
 
     def on_wifi_connect_fail(self, *args, **kwargs):
-        self.on_generic('on_wifi_connect_fail', on_wifi_connect_fail, *args, **kwargs)
+        self.on_generic('on_wifi_connect_fail', api.cb.on_wifi_connect_fail, *args, **kwargs)
 
     # def on_wifi_disconnect(self, *args, **kwargs):
     #     self.on_generic('on_wifi_disconnect', on_wifi_disconnect, *args, **kwargs)
 
     def on_mqtt_connect(self, *args, **kwargs):
-        self.on_generic('on_mqtt_connect', on_mqtt_connect, *args, **kwargs)
+        self.on_generic('on_mqtt_connect', api.cb.on_mqtt_connect, *args, **kwargs)
 
     # def on_mqtt_connect_fail(self, *args, **kwargs):
     #     self.on_generic('on_mqtt_connect_fail', on_mqtt_connect_fail, *args, **kwargs)
 
     def on_mqtt_disconnect(self, *args, **kwargs):
-        self.on_generic('on_mqtt_disconnect', on_mqtt_disconnect, *args, **kwargs)
+        self.on_generic('on_mqtt_disconnect', api.cb.on_mqtt_disconnect, *args, **kwargs)
 
     def _get_conn_state(self):
         """Get connectivity state"""
@@ -124,7 +123,7 @@ class App:
     def publish(self, topic, payload, retain=False, qos=0):
         if not self.mqtt_connected():
             return False
-        self._mqtt_client.publish(topic, str(payload), retain=retain, qos=qos)
+        return self._mqtt_client.publish(topic, str(payload), retain=retain, qos=qos)
 
     def run(self):
         self._is_running = True
@@ -144,7 +143,7 @@ class App:
         for auto_with_loop in self.autos_with_loop:
             auto_with_loop.loop(self.curr_loop_time_ms)
         try:
-            loop(self.curr_loop_time_ms)
+            api.cb.loop(self.curr_loop_time_ms)
         except Exception as err:
             print("Error when evaluating user's loop function:\n%s" % err)
         if self._is_running:
@@ -250,6 +249,3 @@ class App:
 def schedule_run(*args):
     micropython.schedule(api.app.loop, None)
 
-
-gc.collect()
-print("After utils.py: %d mem free" % gc.mem_free())

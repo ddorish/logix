@@ -6,8 +6,7 @@ import utime
 from vars import *
 from digital_output import *
 from dht_handler import DHTSensor
-
-print("Logix: Before class Data defined")
+from handlers import PeriodicHandler
 
 class Data:
     led_r = machine.Pin(api.PinOut.D5, mode=machine.Pin.OUT, value=1)
@@ -22,14 +21,16 @@ class Data:
     last_update_ms = None
 
     # Have a DHT in hand:
-    dht = DHTSensor(pin_name="D4", mqtt_get='dht_get', report_rate_ms=2000, measure_rate_ms=2000)
+    dht = DHTSensor(pin_name="D4", mqtt_get='dht_get')
 
+    # Send IP every 2 minutes:
+    meta_sender = PeriodicHandler(api.cb.send_report)
 
-print("Logix: After class Data defined")
 
 
 def loop(curr_time_ms):
     if Data.curr_state.value() != Data.last_state:
+        print(Data.curr_state.value(), Data.last_state)
         # Change detected. Select one LED and turn it on. If enough time passed, turn on both
         if Data.last_update_ms is None:
             r_goes_first = (curr_time_ms & 1) == 1
@@ -45,6 +46,8 @@ def loop(curr_time_ms):
             Data.last_update_ms = None
 
 
-print("Logix: After loop defined")
+print("\nLogix: File loaded successfully\n")
+
+
 
 

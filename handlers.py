@@ -1,7 +1,7 @@
 # This file is for auto-handled devices. If you only want to have a simple MQTT switch, no need to write lotta-code
 import machine
 import api
-
+import utime
 
 def as_float(val, default=0.):
     """Convert val to an int. use default if conversion fails"""
@@ -33,7 +33,7 @@ class AutoHandlers:
     mqtt_get_topic = None
 
     def __init__(self):
-        if not self.no_auto and self.mqtt_cmd_topic is not None:
+        if not self.no_auto:
             api.app.register(self, [self.mqtt_cmd_topic])
 
     def publish(self):
@@ -54,5 +54,36 @@ class AutoHandlers:
         pass
 
 
+class PeriodicHandler(AutoHandlers):
+    """"Run a custom function on a timer or by special demand"""
+    def __init__(self, func, mqtt_cmd=None, report_rate_ms=120000, no_auto=False, *args, **kwargs):
+        self.func = func
+        self.mqtt_cmd_topic = api.app.conf.get(mqtt_cmd, '/String/%s/cmd_topic/not/found' % mqtt_cmd)
+        self.args = args
+        self.kwargs = kwargs
+        self.report_rate_ms = int(as_float(report_rate_ms))
+        self.no_auto = no_auto
+        self.last_report_msec = None
+        self.need_report = True
+        self.setup()
+        super(self.__class__, self).__init__()
 
+    def setup(self):
+        self.last_report_msec = None
+
+    def execute(self):
+        self.func(*self.args, **self.kwargs)
+        self.need_report = False
+
+    def set_to(self, *args, **kwargs):
+        self.execute()
+
+    def loop(self, curr_time_ms):
+        self.need_report = self.need_report or \
+                           (self.mqtt_get_topic is not None and
+                            (self.last_report_msec is None or
+                             utime.ticks_diff(curr_time_ms, self.last_report_msec) > self.report_rate_ms))
+
+        if self.need_report:
+            self.execute()
 
