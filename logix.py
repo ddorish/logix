@@ -1,14 +1,17 @@
-import utime
-
-# This is the main file you want to edit. You should provide here 2 methods: init and loop
-# You can implement any of the funcs in defaults.py to override them
+# This is the main file you want to edit.
+# For basic cases, you only need to instantiate any of the 'handlers' (e.g. DigitalOutput, DHTSensor, ...)
+# For advanced cases you should [also] override here any of the funcs in defaults.py
 
 from vars import *
 from digital_output import *
 from dht_handler import DHTSensor
 from handlers import PeriodicHandler
+import machine
+import utime
+
 
 class Data:
+    # Have 2 GPIOs controlling relays:
     led_r = machine.Pin(api.PinOut.D5, mode=machine.Pin.OUT, value=1)
     led_l = machine.Pin(api.PinOut.D6, mode=machine.Pin.OUT, value=1)
 
@@ -22,9 +25,6 @@ class Data:
 
     # Have a DHT in hand:
     dht = DHTSensor(pin_name="D4", mqtt_get='dht_get')
-
-    # Send IP every 2 minutes:
-    meta_sender = PeriodicHandler(api.cb.send_report)
 
 
 

@@ -1,7 +1,7 @@
 # This file is for auto-handled devices. If you only want to have a simple MQTT switch, no need to write lotta-code
-import machine
 import api
 import utime
+import machine
 
 def as_float(val, default=0.):
     """Convert val to an int. use default if conversion fails"""
@@ -56,9 +56,9 @@ class AutoHandlers:
 
 class PeriodicHandler(AutoHandlers):
     """"Run a custom function on a timer or by special demand"""
-    def __init__(self, func, mqtt_cmd=None, report_rate_ms=120000, no_auto=False, *args, **kwargs):
+    def __init__(self, func, mqtt_get=None, report_rate_ms=120000, no_auto=False, *args, **kwargs):
         self.func = func
-        self.mqtt_cmd_topic = api.app.conf.get(mqtt_cmd, '/String/%s/cmd_topic/not/found' % mqtt_cmd)
+        self.mqtt_get_topic = api.app.conf.get(mqtt_get, '/String/%s/cmd_topic/not/found' % mqtt_get)
         self.args = args
         self.kwargs = kwargs
         self.report_rate_ms = int(as_float(report_rate_ms))
@@ -86,4 +86,5 @@ class PeriodicHandler(AutoHandlers):
 
         if self.need_report:
             self.execute()
+            self.last_report_msec = curr_time_ms
 
