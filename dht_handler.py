@@ -4,6 +4,7 @@ import dht
 import utime
 import machine
 
+
 class DHTSensor(AutoHandlers):
 
     def __init__(self, pin_name, mqtt_get=None, report_rate_ms=120000, measure_rate_ms=None, no_auto=False, dht_type=22):
