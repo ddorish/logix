@@ -1,11 +1,10 @@
 # This is the main file you want to edit.
 # For basic cases, you only need to instantiate any of the 'handlers' (e.g. DigitalOutput, DHTSensor, ...)
 # For advanced cases you should [also] override here any of the funcs in defaults.py
-
+from analog_output import AnalogOutput
 from vars import *
 from digital_output import *
 from dht_handler import DHTSensor
-from handlers import PeriodicHandler
 import machine
 import utime
 
@@ -26,20 +25,18 @@ class Data:
     # Have a DHT in hand:
     dht = DHTSensor(pin_name="D4", mqtt_get='dht_get')
 
+    L8 = AnalogOutput("D8", 'pwm_cmd', 'pwm_get')
 
 
 def loop(curr_time_ms):
     if Data.curr_state.value() != Data.last_state:
-        print(Data.curr_state.value(), Data.last_state)
         # Change detected. Select one LED and turn it on. If enough time passed, turn on both
         if Data.last_update_ms is None:
             r_goes_first = (curr_time_ms & 1) == 1
             set_first = Data.led_r if r_goes_first else Data.led_l
             set_first.value(1 - Data.curr_state.value())
-            print("Turned %s to %d" % ("R" if r_goes_first else "L", Data.curr_state.value()))
             Data.last_update_ms = curr_time_ms
         elif utime.ticks_diff(curr_time_ms, Data.last_update_ms) > Data.t_delay.value():
-            print("Turned both to %d" % Data.curr_state.value())
             Data.led_r.value(1 - Data.curr_state.value())
             Data.led_l.value(1 - Data.curr_state.value())
             Data.last_state = Data.curr_state.value()
